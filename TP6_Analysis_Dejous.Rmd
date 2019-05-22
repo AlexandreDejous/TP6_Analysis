@@ -1,0 +1,128 @@
+---
+title: "TP6_Analysis_Dejous"
+author: "Alexandre Dejous"
+date: "5/17/2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Part A: Stationnary Analysis
+
+## Question 1 and 2:
+
+```{r}
+setwd("D:/Documents/A2/Data/TP6_Analysis")
+library(tseries)
+data(USeconomic)
+logGNP = as.vector(USeconomic[,2])
+year = seq(1954,1987.75,0.25)
+DATA = data.frame(year,logGNP)
+plot(DATA$year, DATA$logGNP)
+```
+
+## Question 3
+
+In a stationnary time serie, the ensemble mean and thetime average of a sample path are approximately equal.
+For a strict stationnary time serie, all the observations are drawn from the same distribution, for a weak stationnary time serie, we expect only the observations to come from distributions with the same mean, variance and covariance.
+In the plot we just drew, we visually assess that the samples values increase gradually on average on a significant number of samples, which should not happen if the samples were taken from the same distribution. We conclude that the time serie is not stationnary.
+
+## Question 4
+
+```{r echo = FALSE}
+par(mfrow= c(2,1))
+acf = acf(DATA$logGNP, 40)
+pacf(DATA$logGNP,40)
+```
+
+It seems that tha ACF is steadily decreasing, which could indicate that logGNP follows a trend.
+The PACF indicates us that this trend can be modeled with an auto regressive model of order 1.
+
+## Question 5:
+
+```{r echo = FALSE}
+Box.test(DATA$logGNP)
+```
+
+The null hypothesis of this test stipulates that there is no auto-correlation between the values taken by our data.
+However, since our p value is very close to 0, we reject this null hypothesis and have confirmation that our data follows and trend and is not just white noise.
+
+## Question 6:
+
+As is (not derived) our time series is not stationnary. It follows a trend and its samples are not taken from an iid distribution, as shown by the bow pierce test.
+
+
+# PART B:
+
+## Question 1 and 2
+
+```{r echo = FALSE}
+DiffGNP = diff(DATA$logGNP)
+plot(DATA$year[1:length(DiffGNP)],DiffGNP,xlab="year", type ="l")
+  
+```
+
+This time series represents the variation between two consecutive samples at time t (diff between t+1 and t).
+
+## Question 3:
+
+```{r echo = FALSE}
+t.test(DiffGNP)
+```
+
+This student test supports the following null hypothesis: the value of the mean is not equal to 0. In fact, the true mean should be a positive value, as shows the IC95, which is coherent with our previous results : the original time series follows a trend and this trend seems to be positive.
+
+## Question 4:
+
+```{r echo = FALSE}
+par(mfrow= c(2,1))
+acf(DiffGNP)
+pacf(DiffGNP)
+```
+
+The ACF shows us that the q parameter of our arma model might be 2, while the p parameter determined by the PACF might be 0 or 7. Our ARMA model might be ARMA(0,2) or ARMA(7,2).
+
+## Question 5:
+
+```{r echo = FALSE}
+#c(p,0,q)
+arima(DiffGNP,c(0,0,2))
+arima(DiffGNP,c(8,0,2))
+
+```
+
+If we only look at the log likelihood, it seems that the model ARMA(8,2) is the best. However, when comparing the two model swith AIC, ths AIC indicates us that we shoul choose the model ARMA(0,2), because it has less parameters.
+
+```{r echo = FALSE}
+coeff1 = arima(7,0,2)$
+model1 = arima.sim(c(0,0,1),136)
+model2 = arima.sim(c(0,0,2),136)
+model3 = arima.sim(c(7,0,2),136)
+par(mfrow = c(3,1))
+```
+
