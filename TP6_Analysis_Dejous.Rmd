@@ -1,11 +1,11 @@
 ---
-title: "TP6_Analysis_Dejous"
-author: "Alexandre Dejous"
+title: "TP6_Analysis_Dejous_Rondelet"
+author: "Alexandre Dejous, Lucien Rondelet"
 date: "5/17/2019"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -35,7 +35,7 @@ In the plot we just drew, we visually assess that the samples values increase gr
 
 ## Question 4
 
-```{r echo = FALSE}
+```{r}
 par(mfrow= c(2,1))
 acf = acf(DATA$logGNP, 40)
 pacf(DATA$logGNP,40)
@@ -46,7 +46,7 @@ The PACF indicates us that this trend can be modeled with an auto regressive mod
 
 ## Question 5:
 
-```{r echo = FALSE}
+```{r}
 Box.test(DATA$logGNP)
 ```
 
@@ -58,11 +58,11 @@ However, since our p value is very close to 0, we reject this null hypothesis an
 As is (not derived) our time series is not stationnary. It follows a trend and its samples are not taken from an iid distribution, as shown by the bow pierce test.
 
 
-# PART B:
+# PART B: Study of diffGNP
 
 ## Question 1 and 2
 
-```{r echo = FALSE}
+```{r}
 DiffGNP = diff(DATA$logGNP)
 plot(DATA$year[1:length(DiffGNP)],DiffGNP,xlab="year", type ="l")
   
@@ -72,7 +72,7 @@ This time series represents the variation between two consecutive samples at tim
 
 ## Question 3:
 
-```{r echo = FALSE}
+```{r}
 t.test(DiffGNP)
 ```
 
@@ -80,7 +80,7 @@ This student test supports the following null hypothesis: the value of the mean 
 
 ## Question 4:
 
-```{r echo = FALSE}
+```{r}
 par(mfrow= c(1,2))
 acf(DiffGNP)
 pacf(DiffGNP)
@@ -90,7 +90,7 @@ The ACF shows us that the q parameter of our arma model might be 1 or 2, while t
 
 ## Question 5:
 
-```{r echo = FALSE}
+```{r echo=FALSE}
 #c(p,0,q)
 print("---------------0,1---------------")
 arima(DiffGNP,c(0,0,1))[5:6]
@@ -105,17 +105,22 @@ arima(DiffGNP,c(8,0,2))[5:6]
 
 The log likelihood gives us a measure of fitness for our model, the higher the better.
 The AIC gives a measure of fitness and evaluates the simplicity of our model at the same time. The simplest and fittest model minimizes the AIC index.
-If we only look at the log likelihood, it seems that the model ARMA(8,2) is the best. However, when comparing the two model with the AIC, the AIC indicates us that we should choose the model ARMA(0,2), because it has less parameters.
+
+If we only look at the log likelihood, it seems that the model ARMA(8,2) is the best. 
+However, when comparing the two model with the AIC, the AIC indicates us that we should choose the model ARMA(0,2), because it has less parameters.
 
 ## Question 6:
 
 If the residuals follow a trend, it means that our model could fit better the samples, if they don't, it means that our model perfectly fits the samples and is adapted.
-We do the Box-Pierce test and Shapiro-Wilk test on the residuals of our ARMA model applied to DiffGNP for these coefficients : arma(0,1), arma(0,2) and arma(8,2)
+We do the Box-Pierce test and Shapiro-Wilk test on the residuals of our ARMA model applied to DiffGNP for these coefficients : arma(0,1), arma(0,2) and arma(8,2).
+
 The null hypothesis of the Box-Pierce test states that there is no autocorrelation in the data, while the null hypothesis of the Shapiro-Wilk test states that the samples came from a normally distributed population.
+
 To ensure that our model has the best accuracy possible, we must make sure that the residuals don't follow a trend, and that they're normally distributed.
+
 Thus, we need to check that the p-value of both test does not reject the null hypothesis (p> 0.05), we can also compare the models between them.
 
-```{r echo = FALSE}
+```{r echo=FALSE}
 #little p rejects null hypothesis
 model0_1 = arima(DiffGNP,c(0,0,1))$residual
 model0_2 = arima(DiffGNP,c(0,0,2))$residual
@@ -139,7 +144,7 @@ The shapiro wilk test indicates that the model (0,1) did not come from a normall
 It would be useful to display the aurocorrelogram of the residuals, in order to see if the residuals of a model can themselves be described by another model.
 Indeed, we obtain these results:
 
-```{r echo = FALSE}
+```{r}
 par(mfrow= c(1,3))
 
 acf(model0_1)
@@ -154,5 +159,36 @@ acf(model8_2)
 We cannot seem to make sense of a model for (0,2) and (8,2), however, the acf of the residuals of (0,1) indicates that these can be modeled by a MA(2).
 The model (0,1) lacks accuracy, we can definetly direct our attention to the two other models.
 
-Having to choose between (0,2) and (8,2), we decide to 
+Having to choose between (0,2) and (8,2), we decide to choose (8,2), because it seems like the most adapted model, we base our choice upon the results of the box-pierce test and the log-likelihood indicator.
+
+# Part C: Predictions using ARMA
+
+## Question 1:
+
+```{r}
+n <- 10
+T=length(DiffGNP)
+index <- 1:(T - n - 1)
+Start = T-45
+res01 <- predict(arima(DiffGNP[index], c(0, 0, 1)), n)
+res02 <- predict(arima(DiffGNP[index], c(0, 0, 2)), n)
+res82 <- predict(arima(DiffGNP[index], c(8, 0, 2)), n)
+
+#par(mfrow = c(3,1))
+plot(year[Start:T],DiffGNP[Start:T],type = "l", xlab="year", ylab="DiffGNP",main="Prediction (0,1)")
+lines(year[(T-n+1):T],res01$pred,col = 'red')
+lines(year[(T-n+1):T],res01$pred+1.96*res01$se,col = 'red')
+lines(year[(T-n+1):T],res01$pred-1.96*res01$se,col = 'red')
+
+plot(year[Start:T],DiffGNP[Start:T],type = "l", xlab="year", ylab="DiffGNP",main="Prediction (0,2)")
+lines(year[(T-n+1):T],res02$pred,col = 'blue')
+lines(year[(T-n+1):T],res02$pred+1.96*res02$se,col = 'blue')
+lines(year[(T-n+1):T],res02$pred-1.96*res02$se,col = 'blue')
+
+plot(year[Start:T],DiffGNP[Start:T],type = "l", xlab="year", ylab="DiffGNP",main="Prediction (8,2)")
+lines(year[(T-n+1):T],res82$pred,col = 'darkgreen')
+lines(year[(T-n+1):T],res82$pred+1.96*res82$se,col = 'darkgreen')
+lines(year[(T-n+1):T],res82$pred-1.96*res82$se,col = 'darkgreen')
+```
+
 
