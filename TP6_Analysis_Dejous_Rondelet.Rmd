@@ -18,8 +18,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Question 1 and 2:
 
 ```{r}
-setwd("D:/Documents/A2/Data/TP6_Analysis")
-library(tseries)
+setwd("C:/Users/Alexandre/Desktop/A2/Analyse/TP6_Analysis")
+library("tseries")
 data(USeconomic)
 logGNP = as.vector(USeconomic[,2])
 year = seq(1954,1987.75,0.25)
@@ -36,13 +36,12 @@ In the plot we just drew, we visually assess that the samples values increase gr
 ## Question 4
 
 ```{r}
-par(mfrow= c(2,1))
+#par(mfrow= c(2,1))
 acf = acf(DATA$logGNP, 40)
 pacf(DATA$logGNP,40)
 ```
 
 It seems that tha ACF is steadily decreasing, which could indicate that logGNP follows a trend.
-The PACF indicates us that this trend can be modeled with an auto regressive model of order 1.
 
 ## Question 5:
 
@@ -81,12 +80,12 @@ This student test supports the following null hypothesis: the value of the mean 
 ## Question 4:
 
 ```{r}
-par(mfrow= c(1,2))
-acf(DiffGNP)
-pacf(DiffGNP)
+#par(mfrow= c(1,2))
+acf(DiffGNP,40)
+pacf(DiffGNP,40)
 ```
 
-The ACF shows us that the q parameter of our arma model might be 1 or 2, while the p parameter determined by the PACF might be 0 or 8. Our ARMA model might be ARMA(0,1), ARMA(8,1), ARMA(0,2) or ARMA(8,2).
+The ACF shows us that the q parameter of our arma model (applied to diff) might be 1 or 2, while the p parameter determined by the PACF might be 0 or 8. Our ARMA model (applied to diff) might be ARMA(0,1), ARMA(8,1), ARMA(0,2) or ARMA(8,2).
 
 ## Question 5:
 
@@ -194,15 +193,92 @@ It seems that the model (8,2) gives the best results.
 
 ## Question 3:
 
-The model ARMA(8,2) applied on the data DiffGNP is equivalent to a model ARIMA(8,1,2) applied to the data logGNP. Indeed DiffGNP is the lagged difference with lag =1 of the data logGNP.
+The model ARMA(8,2) applied on the data DiffGNP is equivalent to a model ARIMA(8,1,2) applied to the data logGNP. Indeed DiffGNP is the lagged difference with lag =1 of the data logGNP. 
 
-# Part 4:
-
-## Question
-
-
+# Part 4: ARIMA Model
 
 ```{r}
 Diff2GNP = diff(DiffGNP)
-plot(year[1:length(Diff2GNP)],Diff2GNP)
+plot(year[1:length(Diff2GNP)],Diff2GNP,type ="l")
+t.test(Diff2GNP)
 ```
+
+The Student test indicates that the mean is very close to 0 (-0.002 < mean < 0.0022). Even though the p-value is high, we will consider the underlying distribution centered.
+
+```{r}
+#par(mfrow= c(1,2))
+acf(Diff2GNP, 40)
+pacf(Diff2GNP,40)
+
+```
+ 
+With the ACF and PACF applied to Diff2GNP we obtain for p : 1, 3, 5, 7 and for q : 1.
+
+```{r echo=FALSE}
+#little p rejects null hypothesis
+coeff = c(0,2,4,8)
+
+print("---------------0,1---------------")
+model0_1=arima(Diff2GNP,c(coeff[1],0,1))$residual
+arima(Diff2GNP,c(coeff[1],0,1))[5:6]
+Box.test(model0_1)
+shapiro.test(model0_1)
+print("---------------2,1---------------")
+model2_1=arima(Diff2GNP,c(coeff[2],0,1))$residual
+arima(Diff2GNP,c(coeff[2],0,1))[5:6]
+Box.test(model2_1)
+shapiro.test(model2_1)
+print("---------------4,1---------------")
+model4_1=arima(Diff2GNP,c(coeff[3],0,1))$residual
+arima(Diff2GNP,c(coeff[3],0,1))[5:6]
+Box.test(model4_1)
+shapiro.test(model4_1)
+print("---------------8,1---------------")
+model8_1=arima(Diff2GNP,c(coeff[4],0,1))$residual
+arima(Diff2GNP,c(coeff[4],0,1))[5:6]
+Box.test(model8_1)
+shapiro.test(model8_1)
+```
+
+
+These test results show that the models (8,1) and (4,1) are the best, however, for (8,1), despite its log_likelihood being 2 units higher than (4,1), (4,1) has a higher p-value regarding its normality test on its residuals.
+We will continue the analysis with these two models.
+
+```{r}
+
+acf(model4_1)
+
+acf(model8_1)
+
+
+```
+
+There doesnt seem to be any model we can build on top of the residuals of these two acf.
+Now let's compare how the models look like when plot alongside the data.
+
+```{r echo=FALSE}
+
+n <- 10
+T=length(logGNP)
+index <- 1:(T - n)
+res421 <- predict(arima(logGNP[index], c(4, 2, 1)), n)
+
+plot(year[(T - 4 * n):T], logGNP[(T - 4 * n):T], main = "prevision ARIMA(4,2,1)", t = "l", col = "blue", xlab = "temps", ylab = "logGNP")
+lines(year[(T - n):T], c(logGNP[T - n], res421$pred))
+lines(year[(T - n):T], c(logGNP[T - n], res421$pred) + c(0,res421$se) * 1.96, lty = 2)
+lines(year[(T - n):T], c(logGNP[T - n], res421$pred) - c(0,res421$se) * 1.96, lty = 2)
+
+res821 <- predict(arima(logGNP[index], c(8, 2, 1)), n)
+
+plot(year[(T - 4 * n):T], logGNP[(T - 4 * n):T], main = "prevision ARIMA(8,2,1)", t = "l", col = "blue", xlab = "temps", ylab = "logGNP")
+lines(year[(T - n):T], c(logGNP[T - n], res821$pred))
+lines(year[(T - n):T], c(logGNP[T - n], res821$pred) + c(0,res821$se) * 1.96, lty = 2)
+lines(year[(T - n):T], c(logGNP[T - n], res821$pred) - c(0,res821$se) * 1.96, lty = 2)
+
+
+
+
+```
+
+The trend followed by the model (4,2,1) seem to best follow the samples than (8,2,1).
+We think the best possible model for time series prediction on this data is an ARIMA(4,2,1) model.
